@@ -14,7 +14,12 @@ export default function Login() {
   const closeModal = () => setModalOpen(false);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
+    <div
+      className="flex items-center justify-center min-h-screen bg-cover bg-center"
+      style={{
+        backgroundImage: 'url("https://ryansechrest.com/content/images/2022/08/nodes.gif")',
+      }}
+    >
       <Head>
         <title>Login</title>
       </Head>
@@ -49,8 +54,10 @@ export default function Login() {
             <Image width="200" height="120" src={aiTrader} alt="/" />
           </div>
           <div className="flex flex-col items-center mb-6">
-            <button className="flex items-center justify-center w-full py-2 px-4 bg-gray-800 text-white rounded-md hover:bg-gray-700 " 
-                onClick={openModal}>
+            <button
+              className="flex items-center justify-center w-full py-2 px-4 bg-gray-800 text-white rounded-md hover:bg-gray-700"
+              onClick={openModal}
+            >
               LOGIN WITH{" "}
               <span className="ml-2 font-bold text-red-500">DERIV</span>
             </button>
