@@ -6,12 +6,74 @@ import { useState } from "react";
 import Modal from "@/app/components/modal";
 import deriv from "../deriv.png";
 import aiTrader from "../aiTrader.png";
+import { useDispatch, useSelector } from "react-redux";
+import { clearUser, setUser } from "../redux/slices/userSlice";
+import { RootState } from "../redux/store";
 
 export default function Login() {
+  const APP_ID=process.env.NEXT_PUBLIC_APP_ID;
   const [isModalOpen, setModalOpen] = useState(false);
 
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
+  const [apiToken, setApiToken] = useState("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.user);
+
+  const handleLogin = async () => {
+    if (!apiToken) {
+      setErrorMessage('Please enter an API token.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');    
+
+    // WebSocket connection to Deriv's API
+    const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ authorize: apiToken }));
+    };
+
+    ws.onmessage = (message) => {
+        const response = JSON.parse(message.data);
+        if (response.error) {
+            setErrorMessage('Invalid API token. Please try again.');
+        } else {
+          saveUserData();
+            console.log('Authorization successful:', response);
+            alert(`Login successful! Welcome! ${user.email}`);
+        }
+        setIsLoading(false);
+        ws.close();
+    };
+
+    ws.onerror = () => {
+      setErrorMessage('An error occurred while connecting to the server.');
+      setIsLoading(false);
+      ws.close();
+    };
+  };
+
+  const saveUserData = () => {
+    const userData = {
+      email: "meadowmystic4@gmail.com",
+      loginid: "VRTC12183349",
+      is_virtual: 1,
+      currency: "USD",
+      country: "lk",
+      balance: 10091.23,
+      scopes: ["read", "trade", "payments", "trading_information", "admin"],
+      msg_type: "authorize",
+    };
+
+    dispatch(setUser(userData));
+  };
+
+
 
   return (
     <div
@@ -40,6 +102,9 @@ export default function Login() {
           <p className="text-sm text-gray-600">Start your algorithmic trading journey today!</p>
           <button
             className="bg-red-600 mt-6 text-white py-2 px-4 rounded-md shadow-md hover:bg-red-700 w-full md:w-auto"
+            onClick={() =>
+                (window.location.href = "https://hub.deriv.com/tradershub/signup")
+              }
           >
             NO TOKEN? CREATE AN ACCOUNT
           </button>
@@ -63,13 +128,22 @@ export default function Login() {
             </button>
             <p className="text-gray-500 my-4">OR</p>
             <input
-              type="text"
-              placeholder="Enter API Token"
-              className="w-full border border-gray-300 rounded-md py-2 px-4 focus:ring-2 focus:ring-blue-500 focus:outline-none mb-4"
-            />
-            <button className="bg-gray-800 text-white py-2 px-4 rounded-md shadow-md hover:bg-gray-700 w-[20rem]">
-              SIGN IN
-            </button>
+          type="text"
+          placeholder="Enter API Token"
+          value={apiToken}
+          onChange={(e) => setApiToken(e.target.value)}
+          className="text-black w-full border border-gray-300 rounded-md py-2 px-4 mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+        {errorMessage && <p className="text-red-500 text-sm mb-4">{errorMessage}</p>}
+        <button
+          onClick={handleLogin}
+          disabled={isLoading}
+          className={`w-full bg-gray-800 text-white py-2 px-4 rounded-md shadow-md hover:bg-gray-700 ${
+            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {isLoading ? 'Signing In...' : 'SIGN IN'}
+        </button>
           </div>
         </div>
       </div>

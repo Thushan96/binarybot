@@ -10,6 +10,8 @@ interface ReusableModalProps {
 
 const Modal: React.FC<ReusableModalProps> = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
+  const APP_ID=process.env.NEXT_PUBLIC_APP_ID;
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -26,14 +28,18 @@ const Modal: React.FC<ReusableModalProps> = ({ isOpen, onClose, title, children 
         <div>{children}</div>
         <div className="flex justify-evenly mt-6">
           <button
-            onClick={() => console.log("Create Account")}
+           onClick={() =>
+            (window.location.href = "https://hub.deriv.com/tradershub/signup")
+          }
             className="bg-red-600 text-white px-4 py-2 rounded-2xl hover:bg-red-700"
           >
             NO, CREATE AN ACCOUNT
           </button>
           <button
-            onClick={() => console.log("Login")}
-            className="bg-blue-600 text-white px-4 py-2 rounded-2xl hover:bg-blue-700"
+            onClick={() =>
+                (window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}`)
+              }
+            className="bg-gray-800 text-white px-4 py-2 rounded-2xl hover:bg-gray-700"
           >
             YES, LET'S LOGIN
           </button>
