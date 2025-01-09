@@ -27,7 +27,7 @@ export default function Login() {
   const user = useSelector((state: RootState) => state.user);
   const auth = useSelector((state: RootState) => state.auth);
   const router = useRouter();
-  const { ws, isConnected, sendMessage } = useWebSocket(); // Use the context
+  const { ws, isConnected, sendMessage } = useWebSocket();
 
   interface UserData {
     email: string;
