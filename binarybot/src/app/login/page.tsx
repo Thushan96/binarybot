@@ -9,6 +9,10 @@ import aiTrader from "../aiTrader.png";
 import { useDispatch, useSelector } from "react-redux";
 import { clearUser, setUser } from "../redux/slices/userSlice";
 import { RootState } from "../redux/store";
+import { Account, updateAccount } from "../redux/slices/accountsSlice";
+import { login } from "../redux/slices/authSlice";
+import { useRouter } from "next/navigation";
+import { useWebSocket } from "../contexts/WebSocketContext";
 
 export default function Login() {
   const APP_ID=process.env.NEXT_PUBLIC_APP_ID;
@@ -21,58 +25,83 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.user);
+  const auth = useSelector((state: RootState) => state.auth);
+  const router = useRouter();
+  const { ws, isConnected, sendMessage } = useWebSocket(); // Use the context
+
+  interface UserData {
+    email: string;
+    currency: string;
+    fullname: string;
+    country: string;
+    scopes: string[];
+    accounts: Account[]; // Explicitly type accounts as an array of Account
+  }
 
   const handleLogin = async () => {
     if (!apiToken) {
-      setErrorMessage('Please enter an API token.');
+      setErrorMessage("Please enter an API token.");
       return;
     }
 
     setIsLoading(true);
-    setErrorMessage('');    
+    setErrorMessage("");
 
-    // WebSocket connection to Deriv's API
-    const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`);
+    // Send authorization message to WebSocket
+    sendMessage({ authorize: apiToken });
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ authorize: apiToken }));
-    };
+    if (!ws) return;
 
     ws.onmessage = (message) => {
-        const response = JSON.parse(message.data);
-        if (response.error) {
-            setErrorMessage('Invalid API token. Please try again.');
-        } else {
-          saveUserData();
-            console.log('Authorization successful:', response);
-            alert(`Login successful! Welcome! ${user.email}`);
+      const response = JSON.parse(message.data);
+      if (response.error) {
+        setErrorMessage("Invalid API token. Please try again.");
+      } else {
+        const userData = {
+          email: response.authorize.email,
+          currency: response.authorize.currency,
+          is_virtual: response.authorize.is_virtual,
+          balance: response.authorize.balance,
+          fullname: response.authorize.fullname,
+          country: response.authorize.country,
+          scopes: [],
+          accounts: [] as Account[],
+        };
+
+        if (response.authorize.account_list && response.authorize.account_list.length > 0) {
+          response.authorize.account_list.map((account: Account) => {
+            if (account.is_disabled === 0) {
+              userData.accounts.push({
+                account_category: account.account_category,
+                account_type: account.account_type,
+                broker: account.broker,
+                created_at: account.created_at,
+                currency: account.currency,
+                currency_type: account.currency_type,
+                is_disabled: account.is_disabled,
+                is_virtual: account.is_virtual,
+                landing_company_name: account.landing_company_name,
+                loginid: account.loginid,
+              });
+            }
+          });
         }
-        setIsLoading(false);
-        ws.close();
+
+        dispatch(login({ token: apiToken, userEmail: userData.email }));
+        dispatch(setUser(userData));
+        
+        
+        router.push("/home");
+      }
+
+      setIsLoading(false);
     };
 
     ws.onerror = () => {
-      setErrorMessage('An error occurred while connecting to the server.');
+      setErrorMessage("An error occurred while connecting to the server.");
       setIsLoading(false);
-      ws.close();
     };
   };
-
-  const saveUserData = () => {
-    const userData = {
-      email: "meadowmystic4@gmail.com",
-      loginid: "VRTC12183349",
-      is_virtual: 1,
-      currency: "USD",
-      country: "lk",
-      balance: 10091.23,
-      scopes: ["read", "trade", "payments", "trading_information", "admin"],
-      msg_type: "authorize",
-    };
-
-    dispatch(setUser(userData));
-  };
-
 
 
   return (

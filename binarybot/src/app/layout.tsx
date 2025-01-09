@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ReduxProvider from "./redux/reduxProvider";
+import { WebSocketProvider } from "./contexts/WebSocketContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,12 +24,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const APP_ID = process.env.NEXT_PUBLIC_APP_ID || "";
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <WebSocketProvider appId={APP_ID}>
         <ReduxProvider>{children}</ReduxProvider>
+        </WebSocketProvider>
       </body>
     </html>
   );
