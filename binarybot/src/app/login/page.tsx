@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { clearUser, setUser } from "../redux/slices/userSlice";
 import { RootState } from "../redux/store";
 import { Account, updateAccount } from "../redux/slices/accountsSlice";
-import { login } from "../redux/slices/authSlice";
+import { addAuthState } from "../redux/slices/authSlice";
 import { useRouter } from "next/navigation";
 import { useWebSocket } from "../contexts/WebSocketContext";
 
@@ -57,6 +57,15 @@ export default function Login() {
       if (response.error) {
         setErrorMessage("Invalid API token. Please try again.");
       } else {
+        dispatch(addAuthState({
+          token: response.authorize.api_token,
+          loginid: response.authorize.loginid,
+          balance: response.authorize.balance,
+          currency: response.authorize.currency,
+          is_virtual: response.authorize.is_virtual,
+          userEmail: response.authorize.email,
+        }));
+        
         const userData = {
           email: response.authorize.email,
           currency: response.authorize.currency,
@@ -89,6 +98,7 @@ export default function Login() {
 
         dispatch(login({ token: apiToken, userEmail: userData.email }));
         dispatch(setUser(userData));
+
         
         
         router.push("/home");

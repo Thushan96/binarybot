@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 interface WebSocketContextProps {
   ws: WebSocket | null;
   isConnected: boolean;
-  sendMessage: (message: object) => Promise<void>;
+  sendMessage: (message: object) => void;
   lastMessage: any;
   reconnect: () => Promise<void>;
 }
@@ -42,74 +42,80 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   const wsRef = useRef<WebSocket | null>(null); // Ref to track WebSocket instance
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
+  const messageQueue = useRef<object[]>([]); // Queue to hold messages until WebSocket is connected
 
   // Connect WebSocket
   const connectWebSocket = useCallback(async () => {
     if (wsRef.current) {
-      console.log("WebSocket is already connected.");
+      console.warn("WebSocket already connected.");
       return;
     }
-  
+
     try {
+      console.log("Establishing new WebSocket connection...");
       const newWs = await connectWebSocketWithPromise(`wss://ws.binaryws.com/websockets/v3?app_id=${appId}`);
       wsRef.current = newWs;
       setIsConnected(true);
-  
+
+      // Attach a single onmessage handler
       newWs.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          console.log("Message received:", data);
+          const data = JSON.parse(event.data);          
           setLastMessage(data);
         } catch (err) {
           console.error("Error parsing WebSocket message:", err);
         }
       };
-  
+
+      if (messageQueue.current.length > 0) {
+        console.log("Sending queued messages...");
+        while (messageQueue.current.length > 0) {
+          const message = messageQueue.current.shift(); // Remove message from the queue
+          if (message) {
+            newWs.send(JSON.stringify(message));
+            console.log("Queued message sent:", message);
+          }
+        }
+      }
+
+      // Handle WebSocket closure
       newWs.onclose = (event) => {
-        setIsConnected(false);
-        wsRef.current = null;
         console.warn("WebSocket closed:", event.reason || "Unknown reason");
+        setIsConnected(false);
+        wsRef.current = null; // Clear reference
         setLastMessage(null);
       };
-  
+
+      // Handle WebSocket errors
       newWs.onerror = (error) => {
-        console.error("WebSocket Error:", error);
+        console.error("WebSocket error:", error);
         setIsConnected(false);
       };
     } catch (error) {
       console.error("Failed to connect WebSocket:", error);
     }
   }, [appId]);
-  
 
-  const reconnectAttemptRef = useRef(false);
-
+  // Reconnect WebSocket
   const reconnect = useCallback(async () => {
-    if (reconnectAttemptRef.current || isConnected) {
-      console.log("Reconnection already in progress or WebSocket is connected.");
-      return;
-    }
-    reconnectAttemptRef.current = true;
-    console.log("Reconnecting WebSocket...");
-    try {
+    if (!isConnected) {
+      console.log("Reconnecting WebSocket...");
       await connectWebSocket();
-    } finally {
-      reconnectAttemptRef.current = false;
     }
   }, [isConnected, connectWebSocket]);
 
   // Send a message through WebSocket
   const sendMessage = useCallback(
-    async (message: object) => {
+    (message: object) => {
       if (wsRef.current && isConnected) {
-        try {
+        try {          
           wsRef.current.send(JSON.stringify(message));
-          console.log("Message sent:", message);
         } catch (error) {
           console.error("Error sending message:", error);
         }
       } else {
-        console.warn("WebSocket is not connected.");
+        console.warn("WebSocket is not connected. Queuing message.");        
+        messageQueue.current.push(message); // Queue the message
       }
     },
     [isConnected]
@@ -121,6 +127,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
     return () => {
       if (wsRef.current) {
+        console.log("Cleaning up WebSocket connection...");
         wsRef.current.close();
         wsRef.current = null;
       }
