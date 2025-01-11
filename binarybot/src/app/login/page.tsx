@@ -9,10 +9,11 @@ import aiTrader from "../aiTrader.png";
 import { useDispatch, useSelector } from "react-redux";
 import { clearUser, setUser } from "../redux/slices/userSlice";
 import { RootState } from "../redux/store";
-import { Account, updateAccount } from "../redux/slices/accountsSlice";
-import { addAuthState } from "../redux/slices/authSlice";
+import { Account, clearAccounts, updateAccount } from "../redux/slices/accountsSlice";
+import { addAuthState, clearAuthStates } from "../redux/slices/authSlice";
 import { useRouter } from "next/navigation";
 import { useWebSocket } from "../contexts/WebSocketContext";
+import { clearSelectedAccount, setSelectedAccount } from "../redux/slices/selectedAccountSlice";
 
 export default function Login() {
   const APP_ID=process.env.NEXT_PUBLIC_APP_ID;
@@ -43,6 +44,10 @@ export default function Login() {
       setErrorMessage("Please enter an API token.");
       return;
     }
+    dispatch(clearUser());
+    dispatch(clearAuthStates());
+    dispatch(clearSelectedAccount());
+    dispatch(clearAccounts());
 
     setIsLoading(true);
     setErrorMessage("");
@@ -58,13 +63,24 @@ export default function Login() {
         setErrorMessage("Invalid API token. Please try again.");
       } else {
         dispatch(addAuthState({
-          token: response.authorize.api_token,
+          token: apiToken,
           loginid: response.authorize.loginid,
           balance: response.authorize.balance,
           currency: response.authorize.currency,
           is_virtual: response.authorize.is_virtual,
           userEmail: response.authorize.email,
         }));
+
+        dispatch(
+          setSelectedAccount({
+            loginid: response.loginid,
+            currency: response.currency,
+            balance: response.balance,
+            token: response.token,
+            is_virtual: response.is_virtual,
+            userEmail: response.userEmail,
+          })
+        );
         
         const userData = {
           email: response.authorize.email,
@@ -96,12 +112,10 @@ export default function Login() {
           });
         }
 
-        dispatch(login({ token: apiToken, userEmail: userData.email }));
         dispatch(setUser(userData));
-
         
         
-        router.push("/home");
+        router.push("/main");
       }
 
       setIsLoading(false);

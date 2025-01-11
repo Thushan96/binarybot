@@ -1,111 +1,189 @@
 "use client";
 
 import React from "react";
-import { GiHamburgerMenu } from "react-icons/gi";
-import { Disclosure } from "@headlessui/react";
 import {
-  MdOutlineLogout,
-  MdOutlineIntegrationInstructions,
-} from "react-icons/md"; 
-import { RiBankLine } from "react-icons/ri"; 
-
-import { FaTelegramPlane, FaYoutube, FaFacebook } from "react-icons/fa";
-import { AiOutlineShoppingCart } from "react-icons/ai";
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiBankLine,
+} from "react-icons/ri";
+import { MdOutlineLogout } from "react-icons/md";
+import {
+  FaTelegramPlane,
+  FaYoutube,
+  FaFacebook,
+} from "react-icons/fa";
 import { SiOpenai } from "react-icons/si";
 import { RiExchangeFundsLine } from "react-icons/ri";
+import { AiOutlineShoppingCart } from "react-icons/ai";
 import Image from "next/image";
-import binarybot from "../binarybot.png"
+import binarybot from "../binarybot.png";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../redux/store";
+import { setSelectedAccount } from "../redux/slices/selectedAccountSlice";
+import { useWebSocket } from "../contexts/WebSocketContext";
 
-const SideNavbar: React.FC = () => {
+interface SideNavbarProps {
+  isExpanded: boolean;
+  setIsExpanded: (value: boolean) => void;
+}
+
+const SideNavbar: React.FC<SideNavbarProps> = ({
+  isExpanded,
+  setIsExpanded,
+}) => {
+  const toggleSidebar = () => setIsExpanded(!isExpanded);
+  const auth = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
+  const { sendMessage, lastMessage, isConnected, reconnect } = useWebSocket();
+
+  const supportItems = [
+    { label: "Join Telegram", icon: FaTelegramPlane },
+    { label: "Youtube", icon: FaYoutube },
+    { label: "Facebook", icon: FaFacebook },
+  ];
+
+  const otherItems = [
+    { label: "AI Signal Trader🆕", icon: SiOpenai },
+    { label: "Free Copy Trading", icon: RiExchangeFundsLine },
+    { label: "Binary Store", icon: AiOutlineShoppingCart },
+  ];
+
+  const selectAccount = async (loginid: string) => {
+    const selectedState = auth.authStates.find((state) => state.loginid === loginid);
+    if (selectedState) {
+      if(!isConnected) {
+       await reconnect();
+      }
+      sendMessage({ authorize: selectedState.token });
+      console.log("on click", selectedState);
+      
+      dispatch(
+        setSelectedAccount({
+          loginid: selectedState.loginid,
+          currency: selectedState.currency,
+          balance: selectedState.balance,
+          token: selectedState.token,
+          is_virtual: selectedState.is_virtual,
+          userEmail: selectedState.userEmail,
+        })
+      );
+    }
+  };
+
   return (
-    <div>
-      <Disclosure as="nav">
-        <Disclosure.Button className="absolute top-4 right-2 inline-flex items-center peer justify-center rounded-md p-2 text-white hover:bg-gray-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white group">
-          <GiHamburgerMenu
-            className="block md:hidden h-5 w-5"
-            aria-hidden="true"
-          />
-        </Disclosure.Button>
-        <div className="p-6 w-1/2 h-screen bg-blue-900 z-20 fixed top-0 -left-96 lg:left-0 lg:w-60 peer-focus:left-0 peer:transition ease-out delay-150 duration-200">
-          <div className="flex flex-col justify-start items-start">
-            {/* Binary Bot Bird Image */}
-            <div className="mb-6 flex items-center justify-center">
+    <div
+      className={`fixed top-0 h-screen bg-blue-900 z-20 transition-all duration-300 ${
+        isExpanded ? "w-60" : "w-16"
+      }`}
+    >
+      <div className="flex flex-col justify-between h-full p-4">
+        {/* Top Section */}
+        <div>
+          {/* Collapse/Expand Button */}
+          <div
+            className="flex items-center justify-end mb-6 cursor-pointer text-white"
+            onClick={toggleSidebar}
+          >
+            {isExpanded ? (
+              <RiArrowLeftSLine className="text-2xl" />
+            ) : (
+              <RiArrowRightSLine className="text-2xl" />
+            )}
+          </div>
+
+          <div className="mb-6 flex items-center justify-center cursor-pointer">
             <Image width="80" height="30" src={binarybot} alt="/" />
-            </div>
+          </div>
 
-            {/* Select Account Section */}
-            <div className="my-5 border-b border-gray-100 pb-3">
-              <h2 className="text-xs font-semibold text-white mb-2">
-                Select Account
-              </h2>
-              <div className="flex mb-2 justify-start items-center gap-3 p-2 hover:bg-gray-800 rounded-md group cursor-pointer hover:shadow-lg m-auto">
-                <RiBankLine className="text-lg text-gray-300 group-hover:text-white" />
-                <h3 className="text-xs sm:text-sm text-gray-300 group-hover:text-white font-semibold">
-                  VRTC12183974 - USD
-                </h3>
-              </div>
-            </div>
-
-            {/* Support Section */}
-            <div className="my-5 border-b border-gray-100 pb-3">
-              <h2 className="text-xs font-semibold text-white mb-2">Support</h2>
-              {supportItems.map((item) => (
+          {/* Select Account Section */}
+          <div className="my-5 border-b border-gray-100 pb-3">
+            <h2
+              className={`text-xs font-semibold text-white mb-2 ${
+                isExpanded ? "block" : "hidden"
+              }`}
+            >
+              Select Account
+            </h2>
+            {auth.authStates.length > 0 &&
+              auth.authStates.map((state, index) => (
                 <div
-                  key={item.label}
-                  className="flex mb-2 justify-start items-center gap-3 pl-4 hover:bg-gray-800 p-2 rounded-md group cursor-pointer hover:shadow-lg m-auto"
+                  onClick={() => selectAccount(state.loginid)}
+                  key={index}
+                  className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-md group cursor-pointer hover:shadow-lg"
                 >
-                  <item.icon className="text-lg text-gray-300 group-hover:text-white" />
+                  <RiBankLine className="text-lg text-gray-300 group-hover:text-white" />
+                  {isExpanded && (
+                    <h3 className="text-xs sm:text-sm text-gray-300 group-hover:text-white font-semibold">
+                      {state.loginid} - {state.currency}
+                    </h3>
+                  )}
+                </div>
+              ))}
+          </div>
+
+          {/* Support Section */}
+          <div className="my-5 border-b border-gray-100 pb-3">
+            <h2
+              className={`text-xs font-semibold text-white mb-2 ${
+                isExpanded ? "block" : "hidden"
+              }`}
+            >
+              Support
+            </h2>
+            {supportItems.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-md group cursor-pointer hover:shadow-lg"
+              >
+                <item.icon className="text-lg text-gray-300 group-hover:text-white" />
+                {isExpanded && (
                   <h3 className="text-xs sm:text-sm text-gray-300 group-hover:text-white font-semibold">
                     {item.label}
                   </h3>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            ))}
+          </div>
 
-            {/* Other Section */}
-            <div className="my-5">
-              <h2 className="text-xs font-semibold text-white mb-2">Other</h2>
-              {otherItems.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex mb-2 justify-start items-center gap-3 pl-4 hover:bg-gray-800 p-2 rounded-md group cursor-pointer hover:shadow-lg m-auto"
-                >
-                  <item.icon className="text-lg text-gray-300 group-hover:text-white" />
+          {/* Other Section */}
+          <div className="my-5">
+            <h2
+              className={`text-xs font-semibold text-white mb-2 ${
+                isExpanded ? "block" : "hidden"
+              }`}
+            >
+              Other
+            </h2>
+            {otherItems.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-md group cursor-pointer hover:shadow-lg"
+              >
+                <item.icon className="text-lg text-gray-300 group-hover:text-white" />
+                {isExpanded && (
                   <h3 className="text-xs sm:text-sm text-gray-300 group-hover:text-white font-semibold">
                     {item.label}
                   </h3>
-                </div>
-              ))}
-            </div>
-
-            {/* Logout Section */}
-            <div className="my-5">
-              <div className="flex mb-2 justify-start items-center gap-3 pl-4 border border-gray-700 hover:bg-gray-800 p-2 rounded-md group cursor-pointer hover:shadow-lg m-auto">
-                <MdOutlineLogout className="text-lg text-gray-300 group-hover:text-white" />
-                <h3 className="text-sm text-gray-300 group-hover:text-white font-semibold">
-                  Logout
-                </h3>
+                )}
               </div>
-            </div>
+            ))}
           </div>
         </div>
-      </Disclosure>
+
+        {/* Bottom Section */}
+        <div className="my-5">
+          <div className="flex items-center gap-3 p-2 border border-gray-700 hover:bg-gray-800 rounded-md group cursor-pointer hover:shadow-lg">
+            <MdOutlineLogout className="text-lg text-gray-300 group-hover:text-white" />
+            {isExpanded && (
+              <h3 className="text-sm text-gray-300 group-hover:text-white font-semibold">
+                Logout
+              </h3>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
 export default SideNavbar;
-
-// Support Items
-const supportItems = [
-  { label: "Join Telegram", icon: FaTelegramPlane },
-  { label: "Youtube", icon: FaYoutube },
-  { label: "Facebook", icon: FaFacebook },
-];
-
-// Other Items
-const otherItems = [
-  { label: "AI Signal Trader🆕", icon: SiOpenai },
-  { label: "Free Copy Trading", icon: RiExchangeFundsLine },
-  { label: "Binary Store", icon: AiOutlineShoppingCart },
-]
