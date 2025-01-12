@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import accountsReducer, { setAccounts, addAccount, updateAccount, removeAccount, clearAccounts } from './accountsSlice';
+import { setAccounts, addAccount, updateAccount, removeAccount, clearAccounts } from './accountsSlice';
 
 interface UserState {
   email: string | null;
@@ -8,6 +8,7 @@ interface UserState {
   currency: string | null;
   balance: number | null;
   scopes: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   accounts: any[];
 }
 

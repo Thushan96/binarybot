@@ -1,51 +1,32 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import SideNavbar from "../components/sideNavbar";
 import TopBar from "../components/topBar";
-import Dashboard from "../dashboard/page";
-import { useSearchParams } from "next/navigation";
-import { useWebSocket } from "../contexts/WebSocketContext";
+import Dashboard from "../dashboard/dahsboard";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { addAuthState } from "../redux/slices/authSlice";
 import { setSelectedAccount } from "../redux/slices/selectedAccountSlice";
-import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Select,
-  MenuItem,
-  Box,
-  Card,
-  CardContent,
-  Alert,
-  Grid,
-} from "@mui/material";
+import { isBrowser } from "is-in-browser";
+import { useSearchParams as useNextSearchParams, ReadonlyURLSearchParams } from "next/navigation";
 
 const Main = () => {
   const [isSidebarExpanded, setSidebarExpanded] = useState(true);
+
+  const useSearchParams = isBrowser ? useNextSearchParams : () => new ReadonlyURLSearchParams();
+
   const searchParams = useSearchParams();
-  const { sendMessage, lastMessage, isConnected, reconnect } = useWebSocket();
-  const [responses, setResponses] = useState<any[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [status, setStatus] = useState<string>("Initializing...");
-  const [tradeResult, setTradeResult] = useState<string | null>(null);
-  const [currentBalance, setCurrentBalance] = useState<number>(0);
-  const [tradeParams, setTradeParams] = useState({
-    contractType: "CALL", // or "PUT"
-    stake: 10,
-    duration: 5,
-    durationUnit: "m",
-    symbol: "R_100",
-  });
+
 
   const token1 = searchParams.get("token1");
   const token2 = searchParams.get("token2");
   const { authStates } = useSelector((state: RootState) => state.auth);
   const selectedAccount = useSelector((state: RootState) => state.selectedAccount);
   const dispatch = useDispatch();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const tokenMap = useRef<Record<number, string>>({});
   const reqIdCounter = useRef<number>(1); // Incremental ID for tracking requests
@@ -66,12 +47,10 @@ const Main = () => {
       const data = JSON.parse(event.data);
 
       if (data.error) {
-        setErrorMessage(data.error.message);
         setStatus("Authorization failed.");
       } else if (data.authorize) {
         const token = tokenMap.current[data.req_id]; // Match the request ID to the token
         if (token) {
-          setResponses((prev) => [...prev, data]);
           setStatus("Authorization successful.");
 
           // Save token and loginid pairing
@@ -124,6 +103,7 @@ const Main = () => {
 
 
   return (
+    <Suspense>
     <div className="bg-slate-300 h-screen">
       <SideNavbar isExpanded={isSidebarExpanded} setIsExpanded={setSidebarExpanded} />
       <div className={`transition-all duration-300 ${isSidebarExpanded ? "ml-30" : "ml-26"}`}>
@@ -131,6 +111,7 @@ const Main = () => {
           <Dashboard isSidebarExpanded={isSidebarExpanded} />
       </div>
     </div>
+    </Suspense>
   );
 };
 

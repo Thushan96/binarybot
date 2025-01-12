@@ -19,8 +19,12 @@ import Image from "next/image";
 import binarybot from "../binarybot.png";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
-import { setSelectedAccount } from "../redux/slices/selectedAccountSlice";
+import { clearSelectedAccount, setSelectedAccount } from "../redux/slices/selectedAccountSlice";
 import { useWebSocket } from "../contexts/WebSocketContext";
+import { clearAccounts } from "../redux/slices/accountsSlice";
+import { clearAuthStates } from "../redux/slices/authSlice";
+import { clearUser } from "../redux/slices/userSlice";
+import { useRouter } from "next/navigation";
 
 interface SideNavbarProps {
   isExpanded: boolean;
@@ -34,7 +38,8 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
   const toggleSidebar = () => setIsExpanded(!isExpanded);
   const auth = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
-  const { sendMessage, lastMessage, isConnected, reconnect } = useWebSocket();
+  const { sendMessage,isConnected, reconnect } = useWebSocket();
+  const router = useRouter();
 
   const supportItems = [
     { label: "Join Telegram", icon: FaTelegramPlane },
@@ -47,6 +52,14 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
     { label: "Free Copy Trading", icon: RiExchangeFundsLine },
     { label: "Binary Store", icon: AiOutlineShoppingCart },
   ];
+
+  const logout = async () =>{
+    dispatch(clearAccounts());
+    dispatch(clearAuthStates());
+    dispatch(clearSelectedAccount());
+    dispatch(clearUser());
+    router.push("/login");
+  }
 
   const selectAccount = async (loginid: string) => {
     const selectedState = auth.authStates.find((state) => state.loginid === loginid);
@@ -172,7 +185,7 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
 
         {/* Bottom Section */}
         <div className="my-5">
-          <div className="flex items-center gap-3 p-2 border border-gray-700 hover:bg-gray-800 rounded-md group cursor-pointer hover:shadow-lg">
+          <div onClick={logout} className="flex items-center gap-3 p-2 border border-gray-700 hover:bg-gray-800 rounded-md group cursor-pointer hover:shadow-lg">
             <MdOutlineLogout className="text-lg text-gray-300 group-hover:text-white" />
             {isExpanded && (
               <h3 className="text-sm text-gray-300 group-hover:text-white font-semibold">

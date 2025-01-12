@@ -6,17 +6,15 @@ import { useState } from "react";
 import Modal from "@/app/components/modal";
 import deriv from "../deriv.png";
 import aiTrader from "../aiTrader.png";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { clearUser, setUser } from "../redux/slices/userSlice";
-import { RootState } from "../redux/store";
-import { Account, clearAccounts, updateAccount } from "../redux/slices/accountsSlice";
+import { Account, clearAccounts } from "../redux/slices/accountsSlice";
 import { addAuthState, clearAuthStates } from "../redux/slices/authSlice";
 import { useRouter } from "next/navigation";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { clearSelectedAccount, setSelectedAccount } from "../redux/slices/selectedAccountSlice";
 
 export default function Login() {
-  const APP_ID=process.env.NEXT_PUBLIC_APP_ID;
   const [isModalOpen, setModalOpen] = useState(false);
 
   const openModal = () => setModalOpen(true);
@@ -25,19 +23,9 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.user);
-  const auth = useSelector((state: RootState) => state.auth);
   const router = useRouter();
-  const { ws, isConnected, sendMessage } = useWebSocket();
+  const { ws,sendMessage } = useWebSocket();
 
-  interface UserData {
-    email: string;
-    currency: string;
-    fullname: string;
-    country: string;
-    scopes: string[];
-    accounts: Account[]; // Explicitly type accounts as an array of Account
-  }
 
   const handleLogin = async () => {
     if (!apiToken) {
@@ -211,7 +199,7 @@ export default function Login() {
             type="checkbox"
             className="mr-2 border-gray-300 rounded"
           />
-          Don't show this message again
+          Don&apos;t show this message again
         </label>
       </Modal>
     </div>

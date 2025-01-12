@@ -6,6 +6,7 @@ interface WebSocketContextProps {
   ws: WebSocket | null;
   isConnected: boolean;
   sendMessage: (message: object) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastMessage: any;
   reconnect: () => Promise<void>;
 }
@@ -41,6 +42,7 @@ const connectWebSocketWithPromise = (url: string): Promise<WebSocket> => {
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, appId }) => {
   const wsRef = useRef<WebSocket | null>(null); // Ref to track WebSocket instance
   const [isConnected, setIsConnected] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lastMessage, setLastMessage] = useState<any>(null);
   const messageQueue = useRef<object[]>([]); // Queue to hold messages until WebSocket is connected
 

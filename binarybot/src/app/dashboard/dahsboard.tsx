@@ -1,10 +1,8 @@
 "use client";
-import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
-import { addAuthState } from "../redux/slices/authSlice";
 import {
   Container,
   Typography,
@@ -25,11 +23,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
-  const searchParams = useSearchParams();
   const { sendMessage, lastMessage, isConnected, reconnect } = useWebSocket();
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const [status, setStatus] = useState<string>("Initializing...");
-  const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [tradeParams, setTradeParams] = useState({
     contractType: "CALL", // or "PUT"
     stake: 10,
@@ -64,8 +58,6 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
   useEffect(() => {
     if (lastMessage) {
       if (lastMessage.error) {
-        setErrorMessage(lastMessage.error.message);
-        setStatus("Authorization failed.");
       } else if (lastMessage.buy) {
         dispatch(
           setSelectedAccount({

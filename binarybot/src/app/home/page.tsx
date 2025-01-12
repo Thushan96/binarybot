@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
@@ -19,11 +18,13 @@ import {
   Alert,
   Grid,
 } from "@mui/material";
+import { isBrowser } from "is-in-browser";
+import { useSearchParams as useNextSearchParams, ReadonlyURLSearchParams } from "next/navigation";
 
 export default function Home() {
+  const useSearchParams = isBrowser ? useNextSearchParams : () => new ReadonlyURLSearchParams();
   const searchParams = useSearchParams();
   const { sendMessage, lastMessage, isConnected, reconnect } = useWebSocket();
-  const [responses, setResponses] = useState<any[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [status, setStatus] = useState<string>("Initializing...");
   const [tradeResult, setTradeResult] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export default function Home() {
   const token1 = searchParams.get("token2");
   const { authStates } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
+  
 
   useEffect(() => {
     const initializeWebSocket = async () => {
@@ -62,7 +64,6 @@ export default function Home() {
         setErrorMessage(lastMessage.error.message);
         setStatus("Authorization failed.");
       } else if (lastMessage.authorize) {
-        setResponses((prev) => [...prev, lastMessage]);
         setStatus("Authorization successful.");
         setCurrentBalance(lastMessage.authorize.balance);
         dispatch(

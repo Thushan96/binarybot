@@ -41,7 +41,7 @@ const Modal: React.FC<ReusableModalProps> = ({ isOpen, onClose, title, children 
               }
             className="bg-gray-800 text-white px-4 py-2 rounded-2xl hover:bg-gray-700"
           >
-            YES, LET'S LOGIN
+            YES, LET&apos;S LOGIN
           </button>
         </div>
       </div>
