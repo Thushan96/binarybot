@@ -38,7 +38,7 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
   const toggleSidebar = () => setIsExpanded(!isExpanded);
   const auth = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
-  const { sendMessage,isConnected, reconnect } = useWebSocket();
+  const { sendMessage,isConnected, reconnect,disconnect } = useWebSocket();
   const router = useRouter();
 
   const supportItems = [
@@ -58,6 +58,7 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
     dispatch(clearAuthStates());
     dispatch(clearSelectedAccount());
     dispatch(clearUser());
+    disconnect();
     router.push("/login");
   }
 

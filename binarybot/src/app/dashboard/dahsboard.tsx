@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
@@ -23,82 +23,142 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
-  const { sendMessage, lastMessage, isConnected, reconnect } = useWebSocket();
-  const [tradeParams, setTradeParams] = useState({
-    contractType: "CALL", // or "PUT"
+  const [tradeParams, setTradeParams] = useState<{
+    contractType: "CALL" | "PUT";
+    stake: number;
+    duration: number;
+    durationUnit: "m" | "h";
+    symbol: string;
+  }>({
+    contractType: "CALL",
     stake: 10,
     duration: 5,
     durationUnit: "m",
     symbol: "R_100",
   });
+  
   const [tradeAlert, setTradeAlert] = useState<string | null>(null);
   const selectedAccount = useSelector((state: RootState) => state.selectedAccount);
-
+  const wbs = useRef<WebSocket | null>(null);
+  const { ws,disconnect } = useWebSocket(); // Access global WebSocket and disconnect method
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { authStates } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
+  const APP_ID = process.env.NEXT_PUBLIC_APP_ID || "";
+  const isConnectedRef = useRef(false); // Holds the connection state immediately
 
-  const handleSendMessage = (token: string) => {
-    sendMessage({ authorize: token });
-  };
+const updateConnectionState = (value: boolean) => {
+  isConnectedRef.current = value;
+  console.log("Updated isConnectedRef:", isConnectedRef.current);
+};
 
-  useEffect(() => {
-    const initializeWebSocket = async () => {
-      if (!isConnected) {
-        console.log("WebSocket is not connected. Reconnecting...");
-        await reconnect();
-      }
-      if (selectedAccount && selectedAccount.token) {
-        handleSendMessage(selectedAccount.token);
-      }
+    // Function to establish WebSocket connection for the Login page
+    const connectWebSocket = async () => {
+      console.log("Connecting WebSocket...");
+  
+      wbs.current = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`);
+
+      wbs.current.onopen = () => {
+        console.log("WebSocket connected");
+    
+        // Wait until WebSocket is open, then send the authentication request
+        if (selectedAccount.token) {
+          console.log("Sending authentication request...");
+          wbs.current?.send(JSON.stringify({ authorize: selectedAccount.token }));
+        } else {
+          console.log("No token found in selected account. Reconnection failed.");
+        }
+      };
+
+  
+      wbs.current.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data?.authorize) {  
+            console.log("set is connected true"); 
+            updateConnectionState(true);
+          }          
+          console.log(data);   
+          if (data.buy) {
+            console.log("buy data",data.buy);
+            
+            dispatch(
+              setSelectedAccount({
+                loginid: selectedAccount.loginid,
+                currency: selectedAccount.currency,
+                balance: data.buy.balance_after,
+                token: selectedAccount.token,
+                is_virtual: selectedAccount.is_virtual,
+                userEmail: selectedAccount.userEmail,
+              })
+            );
+          } else if (data.sell) {
+            console.log("sell data",data.sell);
+            
+            dispatch(
+              setSelectedAccount({
+                loginid: selectedAccount.loginid,
+                currency: selectedAccount.currency,
+                balance: data.sell.balance_after, 
+                token: selectedAccount.token,
+                is_virtual: selectedAccount.is_virtual,
+                userEmail: selectedAccount.userEmail,
+              })
+            );
+          }
+        } catch (err) {
+          console.error("Error parsing WebSocket message:", err);
+        }
+      };
+  
+      wbs.current.onerror = (error) => {
+        console.log(error);
+        
+        setIsLoading(false);
+      };
+  
+      wbs.current.onclose = () => {
+        console.log(" dashboard WebSocket disconnected....");
+        updateConnectionState(true);
+        wbs.current = null;
+
+      };
     };
 
-    initializeWebSocket();
-  }, [selectedAccount]);
-
-  useEffect(() => {
-    if (lastMessage) {
-      if (lastMessage.error) {
-      } else if (lastMessage.buy) {
-        dispatch(
-          setSelectedAccount({
-            loginid: selectedAccount.loginid,
-            currency: selectedAccount.currency,
-            balance: lastMessage.buy.balance_after,
-            token: selectedAccount.token,
-            is_virtual: selectedAccount.is_virtual,
-            userEmail: selectedAccount.userEmail,
-          })
-        );
-      } else if (lastMessage.sell) {
-        dispatch(
-          setSelectedAccount({
-            loginid: selectedAccount.loginid,
-            currency: selectedAccount.currency,
-            balance: lastMessage.sell.balance_after, // Correct property access
-            token: selectedAccount.token,
-            is_virtual: selectedAccount.is_virtual,
-            userEmail: selectedAccount.userEmail,
-          })
-        );
+    const sendMessage = (message: any) => {
+      if (wbs.current && isConnectedRef.current) {
+        wbs.current.send(JSON.stringify(message));
+      } else {
+        console.warn("WebSocket not connected. Reconnecting...");
       }
-    }
-  }, [lastMessage, dispatch]);
+    };
   
 
   const handleTrade = async () => {
     console.log("handle trade clicked");
-    if (!isConnected) {
-      console.log("WebSocket is not connected. Reconnecting...");
-      await reconnect();
-    }
-
-    if (selectedAccount.token) {
-      await handleSendMessage(selectedAccount.token);//issue in here
-    }else{
-      console.log("please select an account");
+    if(wbs.current==null) {
+      console.log("wbs is null");
       
-    }
-
+      console.log("WebSocket is not connected. Reconnecting...");
+      await connectWebSocket();
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }else if (wbs.current && wbs.current.readyState !== WebSocket.OPEN ) {
+        console.log("WebSocket is not connected. Reconnecting...");
+        await connectWebSocket();
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }else if (wbs.current && wbs.current.readyState === WebSocket.OPEN && !isConnectedRef.current) {
+        console.log("isConnected",isConnectedRef.current);
+        console.log("WebSocket is connected. Authorization failed. Reconnecting...");
+        await connectWebSocket();
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+        console.log("WebSocket is connected.");
+        console.log(wbs);
+        console.log(isConnectedRef.current);
+        console.log(tradeParams.contractType);
+        
+        
     sendMessage({
       buy: 1,
       price: tradeParams.stake,
@@ -144,8 +204,10 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
                 <Select
                   fullWidth
                   value={tradeParams.contractType}
-                  onChange={(e) => setTradeParams({ ...tradeParams, contractType: e.target.value })}
-                >
+                  onChange={(e) => setTradeParams((prev) => ({
+                    ...prev,
+                    contractType: e.target.value as "CALL" | "PUT",
+                  }))}                >
                   <MenuItem value="CALL">CALL</MenuItem>
                   <MenuItem value="PUT">PUT</MenuItem>
                 </Select>
@@ -173,7 +235,7 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
                 <Select
                   fullWidth
                   value={tradeParams.durationUnit}
-                  onChange={(e) => setTradeParams({ ...tradeParams, durationUnit: e.target.value })}
+                  onChange={(e) => setTradeParams({ ...tradeParams, durationUnit: e.target.value as "m" | "h" })}
                 >
                   <MenuItem value="m">Minutes</MenuItem>
                   <MenuItem value="h">Hours</MenuItem>

@@ -42,47 +42,47 @@ export default function Home() {
   const dispatch = useDispatch();
   
 
-  useEffect(() => {
-    const initializeWebSocket = async () => {
-      if (!isConnected) {
-        console.log("WebSocket is not connected. Reconnecting...");
-        await reconnect();
-      }
-      if (token1) handleSendMessage(token1);
-    };
+  // useEffect(() => {
+  //   const initializeWebSocket = async () => {
+  //     if (!isConnected) {
+  //       console.log("WebSocket is not connected. Reconnecting...");
+  //       await reconnect();
+  //     }
+  //     if (token1) handleSendMessage(token1);
+  //   };
 
-    initializeWebSocket();
-  }, [token1]);
+  //   initializeWebSocket();
+  // }, [token1]);
 
   const handleSendMessage = (token: string) => {
     sendMessage({ authorize: token });
   };
 
-  useEffect(() => {
-    if (lastMessage) {
-      if (lastMessage.error) {
-        setErrorMessage(lastMessage.error.message);
-        setStatus("Authorization failed.");
-      } else if (lastMessage.authorize) {
-        setStatus("Authorization successful.");
-        setCurrentBalance(lastMessage.authorize.balance);
-        dispatch(
-          addAuthState({
-            token: lastMessage.authorize.api_token,
-            loginid: lastMessage.authorize.loginid,
-            balance: lastMessage.authorize.balance,
-            currency: lastMessage.authorize.currency,
-            is_virtual: lastMessage.authorize.is_virtual,
-            userEmail: lastMessage.authorize.email,
-          })
-        );
-      } else if (lastMessage.buy) {
-        const profitLoss = lastMessage.buy.payout - lastMessage.buy.buy_price;
-        setTradeResult(profitLoss > 0 ? `Profit: $${profitLoss}` : `Loss: $${-profitLoss}`);
-        setCurrentBalance(lastMessage.buy.balance_after);
-      }
-    }
-  }, [lastMessage, dispatch]);
+  // useEffect(() => {
+  //   if (lastMessage) {
+  //     if (lastMessage.error) {
+  //       setErrorMessage(lastMessage.error.message);
+  //       setStatus("Authorization failed.");
+  //     } else if (lastMessage.authorize) {
+  //       setStatus("Authorization successful.");
+  //       setCurrentBalance(lastMessage.authorize.balance);
+  //       dispatch(
+  //         addAuthState({
+  //           token: lastMessage.authorize.api_token,
+  //           loginid: lastMessage.authorize.loginid,
+  //           balance: lastMessage.authorize.balance,
+  //           currency: lastMessage.authorize.currency,
+  //           is_virtual: lastMessage.authorize.is_virtual,
+  //           userEmail: lastMessage.authorize.email,
+  //         })
+  //       );
+  //     } else if (lastMessage.buy) {
+  //       const profitLoss = lastMessage.buy.payout - lastMessage.buy.buy_price;
+  //       setTradeResult(profitLoss > 0 ? `Profit: $${profitLoss}` : `Loss: $${-profitLoss}`);
+  //       setCurrentBalance(lastMessage.buy.balance_after);
+  //     }
+  //   }
+  // }, [lastMessage, dispatch]);
 
   const handleTrade = () => {
     console.log("handle trade clicked");

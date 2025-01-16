@@ -1,6 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "../redux/store";
+
 
 interface WebSocketContextProps {
   ws: WebSocket | null;
@@ -9,17 +12,20 @@ interface WebSocketContextProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastMessage: any;
   reconnect: () => Promise<void>;
+  disableWebSocket?: boolean;
+  disconnect: () => void;
 }
 
 interface WebSocketProviderProps {
   children: React.ReactNode;
   appId: string;
+  disableWebSocket?: boolean; // ✅ Add this line
 }
 
 const WebSocketContext = createContext<WebSocketContextProps | undefined>(undefined);
 
 // Utility to create a WebSocket connection with promises
-const connectWebSocketWithPromise = (url: string): Promise<WebSocket> => {
+export const connectWebSocketWithPromise = (url: string): Promise<WebSocket> => {
   return new Promise((resolve, reject) => {
     const newWs = new WebSocket(url);
 
@@ -39,16 +45,32 @@ const connectWebSocketWithPromise = (url: string): Promise<WebSocket> => {
   });
 };
 
-export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, appId }) => {
+
+export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, appId ,disableWebSocket = false }) => {
   const wsRef = useRef<WebSocket | null>(null); // Ref to track WebSocket instance
   const [isConnected, setIsConnected] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lastMessage, setLastMessage] = useState<any>(null);
   const messageQueue = useRef<object[]>([]); // Queue to hold messages until WebSocket is connected
+  const selectedAccount = useSelector((state: RootState) => state.selectedAccount);
+
+  const disconnect = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      setIsConnected(false);
+      wsRef.current = null; // Clear reference
+      setLastMessage(null);
+    }
+  };
 
   // Connect WebSocket
   const connectWebSocket = useCallback(async () => {
-    if (wsRef.current) {
+    if (disableWebSocket) {
+      console.log("Global WebSocket is disabled on this page.");
+      return;
+    }
+
+    if (wsRef.current && isConnected) {
       console.warn("WebSocket already connected.");
       return;
     }
@@ -57,14 +79,24 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       console.log("Establishing new WebSocket connection...");
       const newWs = await connectWebSocketWithPromise(`wss://ws.binaryws.com/websockets/v3?app_id=${appId}`);
       wsRef.current = newWs;
-      setIsConnected(true);
+      console.log(selectedAccount);
+      
+      if(selectedAccount.token){
+        wsRef.current.send(JSON.stringify({ authorize : selectedAccount.token}));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }else{
+        console.log("No token found in selected Account reconnection failed");
+      }
 
       // Attach a single onmessage handler
-      newWs.onmessage = (event) => {
+      newWs.onmessage = async (event) => {
         try {
-          const data = JSON.parse(event.data);    
+          const data = JSON.parse(event.data);
+          if (data?.authorize?.msg_type === "authorize") {
+            setIsConnected(true);
+            return;
+          }    
           console.log(data);
-                
           setLastMessage(data);
         } catch (err) {
           console.error("Error parsing WebSocket message:", err);
@@ -110,17 +142,32 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
   // Send a message through WebSocket
   const sendMessage = useCallback(
-    (message: object) => {
-      if (wsRef.current && isConnected) {
-        try {          
+    async (message: object) => {
+      try {
+      if (wsRef.current && isConnected) {          
           wsRef.current.send(JSON.stringify(message));
-        } catch (error) {
-          console.error("Error sending message:", error);
+      } else if(!wsRef.current) {
+        connectWebSocket();
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        if (wsRef.current && isConnected) {
+          (wsRef.current as WebSocket).send(JSON.stringify(message));
+        } else {
+          console.warn("WebSocket is not connected. Queuing message.");        
+          messageQueue.current.push(message); // Queue the message
         }
-      } else {
-        console.warn("WebSocket is not connected. Queuing message.");        
-        messageQueue.current.push(message); // Queue the message
+      }else if(!isConnected) {
+        connectWebSocket();
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        if (wsRef.current && isConnected) {
+          (wsRef.current as WebSocket).send(JSON.stringify(message));
+        } else {
+          console.warn("WebSocket is not connected. Queuing message.");        
+          messageQueue.current.push(message); // Queue the message
+        }
       }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
     },
     [isConnected]
   );
@@ -139,7 +186,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   }, [connectWebSocket]);
 
   return (
-    <WebSocketContext.Provider value={{ ws: wsRef.current, isConnected, sendMessage, lastMessage, reconnect }}>
+    <WebSocketContext.Provider value={{ ws: wsRef.current, isConnected, sendMessage, lastMessage, reconnect ,disconnect }}>
       {children}
     </WebSocketContext.Provider>
   );

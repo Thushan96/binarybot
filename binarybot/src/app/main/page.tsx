@@ -71,11 +71,7 @@ const Main = () => {
     ws.onclose = () => {
       setStatus("WebSocket disconnected.");
     };
-
-    return () => {
-      ws.close();
-    };
-  }, [token1, token2, dispatch]);
+  }, [token1, token2]);
 
   const sendAuthRequest = (ws: WebSocket, token: string) => {
     const req_id = reqIdCounter.current++;
