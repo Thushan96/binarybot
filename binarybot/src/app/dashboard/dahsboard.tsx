@@ -48,6 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
   const dispatch = useDispatch();
   const APP_ID = process.env.NEXT_PUBLIC_APP_ID || "";
   const isConnectedRef = useRef(false); // Holds the connection state immediately
+  const [tradePlaced, setTradePlaced] = useState(false);
 
 const updateConnectionState = (value: boolean) => {
   isConnectedRef.current = value;
@@ -131,6 +132,9 @@ const updateConnectionState = (value: boolean) => {
     const sendMessage = (message: any) => {
       if (wbs.current && isConnectedRef.current) {
         wbs.current.send(JSON.stringify(message));
+        setTradePlaced(true);
+        // Reset the signal after marking
+        setTimeout(() => setTradePlaced(false), 100);
       } else {
         console.warn("WebSocket not connected. Reconnecting...");
       }
@@ -272,7 +276,7 @@ const updateConnectionState = (value: boolean) => {
       </Container>  
       <div>
       <h1>Live Market Data Chart</h1>
-      <LiveChart symbol="R_100" />
+      <LiveChart symbol="R_100" tradePlaced={tradePlaced} />
     </div>
     </div>
   );
