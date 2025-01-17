@@ -13,7 +13,7 @@ socket.onopen = () => {
       }
     }
   } catch (error) {
-    console.error("Error while processing pending messages:", error);
+    console.log("Error while processing pending messages:", error);
   }
 };
 
@@ -21,13 +21,13 @@ socket.onclose = () => {
   try {
     console.log("WebSocket connection closed.");
   } catch (error) {
-    console.error("Error in WebSocket onclose handler:", error);
+    console.log("Error in WebSocket onclose handler:", error);
   }
 };
 
 socket.onerror = (error) => {
   try {
-    console.error("WebSocket error:", error);
+    console.log("WebSocket error:", error);
   } catch (innerError) {
     console.error("Error while handling WebSocket error:", innerError);
   }
@@ -43,10 +43,10 @@ const sendMessage = (message: object) => {
     } else if (socket.readyState === WebSocket.CONNECTING) {
       pendingMessages.push(serializedMessage);
     } else {
-      console.error("WebSocket is not open. Unable to send message.");
+      console.log("WebSocket is not open. Unable to send message.");
     }
   } catch (error) {
-    console.error("Error while sending message:", error);
+    console.log("Error while sending message:", error);
   }
 };
 
@@ -67,11 +67,11 @@ export const subscribeToMarketData = (symbol: string, callback: (data: any) => v
           callback(message.tick);
         }
       } catch (error) {
-        console.error("Error while handling WebSocket message:", error);
+        console.log("Error while handling WebSocket message:", error);
       }
     };
   } catch (error) {
-    console.error("Error while subscribing to market data:", error);
+    console.log("Error while subscribing to market data:", error);
   }
 };
 
@@ -85,6 +85,6 @@ export const unsubscribeFromMarketData = (symbol: string) => {
 
     sendMessage(request);
   } catch (error) {
-    console.error("Error while unsubscribing from market data:", error);
+    console.log("Error while unsubscribing from market data:", error);
   }
 };

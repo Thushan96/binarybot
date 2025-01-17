@@ -63,6 +63,8 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
     const selectedState = auth.authStates.find((state) => state.loginid === loginid);
     if (selectedState) {
       console.log("on click", selectedState);
+      console.log(selectedState.token);
+      
       
       dispatch(
         setSelectedAccount({

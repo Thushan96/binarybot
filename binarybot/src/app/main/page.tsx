@@ -116,7 +116,7 @@ const Main = () => {
 
       if (data.error) {
       } else if (data.authorize) {
-        const token = tokens[0]; // Get the token from the first request (you can change this logic)
+        const token = tokenMap.current[data.req_id]; // Match the request ID to the token
         if (token) {
           // Save token and loginid pairing
           dispatch(
