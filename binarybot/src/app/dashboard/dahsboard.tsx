@@ -17,6 +17,7 @@ import {
   Grid,
 } from "@mui/material";
 import { setSelectedAccount } from "../redux/slices/selectedAccountSlice";
+import LiveChart from "../components/chart";
 
 interface DashboardProps {
   isSidebarExpanded: boolean;
@@ -55,6 +56,7 @@ const updateConnectionState = (value: boolean) => {
 
     // Function to establish WebSocket connection for the Login page
     const connectWebSocket = async () => {
+      
       console.log("Connecting WebSocket...");
   
       wbs.current = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`);
@@ -268,6 +270,10 @@ const updateConnectionState = (value: boolean) => {
           </Alert>
         )}
       </Container>  
+      <div>
+      <h1>Live Market Data Chart</h1>
+      <LiveChart symbol="R_100" />
+    </div>
     </div>
   );
 };
