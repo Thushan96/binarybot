@@ -11,7 +11,7 @@ interface LiveChartProps {
 }
 
 const LiveChart: React.FC<LiveChartProps> = ({ symbol, tradePlaced }) => {
-  const chartRef = useRef<any>(null); // Reference to the chart instance
+  const chartRef = useRef<any>(null);
   const [chartData, setChartData] = useState<any>({
     labels: [],
     datasets: [
@@ -31,77 +31,93 @@ const LiveChart: React.FC<LiveChartProps> = ({ symbol, tradePlaced }) => {
 
   // Function to update the chart with new tick data
   const updateChart = (tick: any) => {
-    setLatestTick(tick); // Store the latest tick for reference
-    setChartData((prevData: any) => {
-      const newLabels = [...prevData.labels, new Date().toLocaleTimeString()];
-      const newData = [...prevData.datasets[0].data, tick.quote];
-      const newPointColors = [...prevData.datasets[0].pointBackgroundColor, "rgba(75, 192, 192, 1)"];
-      const newPointSizes = [...prevData.datasets[0].pointRadius, 3];
-
-      // Limit the number of points on the chart to prevent overloading the view
-      if (newLabels.length > 20) {
-        newLabels.shift();
-        newData.shift();
-        newPointColors.shift();
-        newPointSizes.shift();
-      }
-
-      return {
-        labels: newLabels,
-        datasets: [
-          {
-            ...prevData.datasets[0],
-            data: newData,
-            pointBackgroundColor: newPointColors,
-            pointRadius: newPointSizes,
-          },
-        ],
-      };
-    });
-  };
-
-  // Function to mark the trade on the chart
-  const addTradeMarker = () => {
-    if (latestTick) {
+    try {
+      setLatestTick(tick); // Store the latest tick for reference
       setChartData((prevData: any) => {
-        const updatedColors = [...prevData.datasets[0].pointBackgroundColor];
-        const updatedSizes = [...prevData.datasets[0].pointRadius];
-        updatedColors[updatedColors.length - 1] = "red"; // Change the last point to red
-        updatedSizes[updatedSizes.length - 1] = 6; // Enlarge the last point
+        const newLabels = [...prevData.labels, new Date().toLocaleTimeString()];
+        const newData = [...prevData.datasets[0].data, tick.quote];
+        const newPointColors = [...prevData.datasets[0].pointBackgroundColor, "rgba(75, 192, 192, 1)"];
+        const newPointSizes = [...prevData.datasets[0].pointRadius, 3];
+
+        // Limit the number of points on the chart to prevent overloading the view
+        if (newLabels.length > 20) {
+          newLabels.shift();
+          newData.shift();
+          newPointColors.shift();
+          newPointSizes.shift();
+        }
 
         return {
-          ...prevData,
+          labels: newLabels,
           datasets: [
             {
               ...prevData.datasets[0],
-              pointBackgroundColor: updatedColors,
-              pointRadius: updatedSizes,
+              data: newData,
+              pointBackgroundColor: newPointColors,
+              pointRadius: newPointSizes,
             },
           ],
         };
       });
+    } catch (error) {
+      console.error("Error updating the chart:", error);
+    }
+  };
+
+  // Function to mark the trade on the chart
+  const addTradeMarker = () => {
+    try {
+      if (latestTick) {
+        setChartData((prevData: any) => {
+          const updatedColors = [...prevData.datasets[0].pointBackgroundColor];
+          const updatedSizes = [...prevData.datasets[0].pointRadius];
+          updatedColors[updatedColors.length - 1] = "red"; // Change the last point to red
+          updatedSizes[updatedSizes.length - 1] = 6; // Enlarge the last point
+
+          return {
+            ...prevData,
+            datasets: [
+              {
+                ...prevData.datasets[0],
+                pointBackgroundColor: updatedColors,
+                pointRadius: updatedSizes,
+              },
+            ],
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error adding trade marker:", error);
     }
   };
 
   useEffect(() => {
-    // Subscribe to market data for the symbol
-    subscribeToMarketData(symbol, updateChart);
+    try {
+      // Subscribe to market data for the symbol
+      subscribeToMarketData(symbol, updateChart);
 
-    // Cleanup function to unsubscribe when the component is unmounted
-    return () => {
-      unsubscribeFromMarketData(symbol);
-    };
+      // Cleanup function to unsubscribe when the component is unmounted
+      return () => {
+        unsubscribeFromMarketData(symbol);
+      };
+    } catch (error) {
+      console.error("Error during subscription or cleanup:", error);
+    }
   }, [symbol]);
 
   // Listen for tradePlaced flag to trigger marker addition
   useEffect(() => {
-    if (tradePlaced) {
-      addTradeMarker();
+    try {
+      if (tradePlaced) {
+        addTradeMarker();
+      }
+    } catch (error) {
+      console.error("Error handling tradePlaced effect:", error);
     }
   }, [tradePlaced]);
 
   return (
-    <div style={{ width: "100%", height: "400px" }}>
+    <div style={{ width: "80%" }}>
       <Line ref={chartRef} data={chartData} options={{ responsive: true }} />
     </div>
   );

@@ -1,6 +1,3 @@
-"use client";
-
-import React, { useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
@@ -11,10 +8,6 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ isExpanded }) => {
   const selectedAccount = useSelector((state: RootState) => state.selectedAccount);
-
-  useEffect(() => {
-    console.log(selectedAccount);
-  }, [selectedAccount]);
 
   return (
     <div
