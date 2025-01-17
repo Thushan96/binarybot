@@ -36,6 +36,14 @@ const authSlice = createSlice({
         state.authStates[index] = action.payload;
       }
     },
+    updateAuthStateByToken: (state, action: PayloadAction<{ token: string; updates: Partial<AuthState> }>) => {
+      // Find an AuthState object by token and update it
+      const { token, updates } = action.payload;
+      const index = state.authStates.findIndex((auth) => auth.token === token);
+      if (index !== -1) {
+        state.authStates[index] = { ...state.authStates[index], ...updates };
+      }
+    },
     clearAuthStates: (state) => {
       // Clear all AuthState objects from the array
       state.authStates = [];
@@ -43,5 +51,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { addAuthState, removeAuthState, updateAuthState, clearAuthStates } = authSlice.actions;
+export const { addAuthState, removeAuthState, updateAuthState,updateAuthStateByToken,clearAuthStates } = authSlice.actions;
 export default authSlice.reducer;

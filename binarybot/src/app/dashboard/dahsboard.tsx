@@ -1,23 +1,10 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
-import { useWebSocket } from "../contexts/WebSocketContext";
+import React, {useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
-import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Select,
-  MenuItem,
-  Box,
-  Card,
-  CardContent,
-  Alert,
-  Grid,
-} from "@mui/material";
 import { setSelectedAccount } from "../redux/slices/selectedAccountSlice";
 import LiveChart from "../components/chart";
+import { updateAuthStateByToken } from "../redux/slices/authSlice";
 
 interface DashboardProps {
   isSidebarExpanded: boolean;
@@ -37,134 +24,148 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
     durationUnit: "m",
     symbol: "R_100",
   });
-  
+
   const [tradeAlert, setTradeAlert] = useState<string | null>(null);
-  const selectedAccount = useSelector((state: RootState) => state.selectedAccount);
+  const selectedAccount = useSelector(
+    (state: RootState) => state.selectedAccount
+  );
   const wbs = useRef<WebSocket | null>(null);
-  const { ws,disconnect } = useWebSocket(); // Access global WebSocket and disconnect method
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const { authStates } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   const APP_ID = process.env.NEXT_PUBLIC_APP_ID || "";
   const isConnectedRef = useRef(false); // Holds the connection state immediately
   const [tradePlaced, setTradePlaced] = useState(false);
 
-const updateConnectionState = (value: boolean) => {
-  isConnectedRef.current = value;
-  console.log("Updated isConnectedRef:", isConnectedRef.current);
-};
+  const updateConnectionState = (value: boolean) => {
+    isConnectedRef.current = value;
+    console.log("Updated isConnectedRef:", isConnectedRef.current);
+  };
 
-    // Function to establish WebSocket connection for the Login page
-    const connectWebSocket = async () => {
-      
-      console.log("Connecting WebSocket...");
-  
-      wbs.current = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`);
+  // Function to establish WebSocket connection for the Login page
+  const connectWebSocket = async () => {
+    console.log("Connecting WebSocket...");
 
-      wbs.current.onopen = () => {
-        console.log("WebSocket connected");
-    
-        // Wait until WebSocket is open, then send the authentication request
-        if (selectedAccount.token) {
-          console.log("Sending authentication request...");
-          wbs.current?.send(JSON.stringify({ authorize: selectedAccount.token }));
-        } else {
-          console.log("No token found in selected account. Reconnection failed.");
-        }
-      };
+    wbs.current = new WebSocket(
+      `wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`
+    );
 
-  
-      wbs.current.onmessage = async (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data?.authorize) {  
-            console.log("set is connected true"); 
-            updateConnectionState(true);
-          }          
-          console.log(data);   
-          if (data.buy) {
-            console.log("buy data",data.buy);
-            
-            dispatch(
-              setSelectedAccount({
-                loginid: selectedAccount.loginid,
-                currency: selectedAccount.currency,
-                balance: data.buy.balance_after,
-                token: selectedAccount.token,
-                is_virtual: selectedAccount.is_virtual,
-                userEmail: selectedAccount.userEmail,
-              })
-            );
-          } else if (data.sell) {
-            console.log("sell data",data.sell);
-            
-            dispatch(
-              setSelectedAccount({
-                loginid: selectedAccount.loginid,
-                currency: selectedAccount.currency,
-                balance: data.sell.balance_after, 
-                token: selectedAccount.token,
-                is_virtual: selectedAccount.is_virtual,
-                userEmail: selectedAccount.userEmail,
-              })
-            );
-          }
-        } catch (err) {
-          console.error("Error parsing WebSocket message:", err);
-        }
-      };
-  
-      wbs.current.onerror = (error) => {
-        console.log(error);
-        
-        setIsLoading(false);
-      };
-  
-      wbs.current.onclose = () => {
-        console.log(" dashboard WebSocket disconnected....");
-        updateConnectionState(true);
-        wbs.current = null;
+    wbs.current.onopen = () => {
+      console.log("WebSocket connected");
 
-      };
-    };
-
-    const sendMessage = (message: any) => {
-      if (wbs.current && isConnectedRef.current) {
-        wbs.current.send(JSON.stringify(message));
-        setTradePlaced(true);
-        // Reset the signal after marking
-        setTimeout(() => setTradePlaced(false), 100);
+      // Wait until WebSocket is open, then send the authentication request
+      if (selectedAccount.token) {
+        console.log("Sending authentication request...");
+        wbs.current?.send(JSON.stringify({ authorize: selectedAccount.token }));
       } else {
-        console.warn("WebSocket not connected. Reconnecting...");
+        console.log("No token found in selected account. Reconnection failed.");
       }
     };
-  
+
+    wbs.current.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.authorize) {
+          console.log("set is connected true");
+          updateConnectionState(true);
+        }
+        console.log(data);
+        if (data.buy) {
+          console.log("buy data", data.buy);
+          if (selectedAccount.token) {
+          dispatch(
+            setSelectedAccount({
+              loginid: selectedAccount.loginid,
+              currency: selectedAccount.currency,
+              balance: data.buy.balance_after,
+              token: selectedAccount.token,
+              is_virtual: selectedAccount.is_virtual,
+              userEmail: selectedAccount.userEmail,
+            }));
+
+              dispatch(
+                updateAuthStateByToken({
+                  token: selectedAccount.token,
+                  updates: {
+                    balance: data.buy.balance_after,
+                  },
+                })
+              );
+              }
+        } else if (data.sell) {
+          console.log("sell data", data.sell);
+          if (selectedAccount.token) {
+          dispatch(
+            setSelectedAccount({
+              loginid: selectedAccount.loginid,
+              currency: selectedAccount.currency,
+              balance: data.sell.balance_after,
+              token: selectedAccount.token,
+              is_virtual: selectedAccount.is_virtual,
+              userEmail: selectedAccount.userEmail,
+            })
+          );
+            dispatch(
+              updateAuthStateByToken({
+                token: selectedAccount.token,
+                updates: {
+                  balance: data.buy.balance_after,
+                },
+              })
+            );
+            }
+        }
+      } catch (err) {
+        console.error("Error parsing WebSocket message:", err);
+      }
+    };
+
+    wbs.current.onerror = (error) => {
+      console.log(error);
+    };
+
+    wbs.current.onclose = () => {
+      console.log(" dashboard WebSocket disconnected....");
+      updateConnectionState(true);
+      wbs.current = null;
+    };
+  };
+
+  const sendMessage = (message: any) => {
+    if (wbs.current && isConnectedRef.current) {
+      wbs.current.send(JSON.stringify(message));
+      setTradePlaced(true);
+      // Reset the signal after marking
+      setTimeout(() => setTradePlaced(false), 100);
+    } else {
+      console.warn("WebSocket not connected. Reconnecting...");
+    }
+  };
 
   const handleTrade = async () => {
-    console.log("handle trade clicked");
-    if(wbs.current==null) {
-      console.log("wbs is null");
+    if(selectedAccount == null){
+      setTradeAlert(`please select account for trade`);
+    }
       
-      console.log("WebSocket is not connected. Reconnecting...");
-      await connectWebSocket();
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-    }else if (wbs.current && wbs.current.readyState !== WebSocket.OPEN ) {
-        console.log("WebSocket is not connected. Reconnecting...");
-        await connectWebSocket();
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      }else if (wbs.current && wbs.current.readyState === WebSocket.OPEN && !isConnectedRef.current) {
-        console.log("isConnected",isConnectedRef.current);
-        console.log("WebSocket is connected. Authorization failed. Reconnecting...");
-        await connectWebSocket();
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+      if(Number(selectedAccount.balance) <= 0 || Number(selectedAccount.balance) <  tradeParams.stake){
+        setTradeAlert(`Your account balance is insufficient. Please recharge your account`);
+        return;
       }
-        console.log("WebSocket is connected.");
-        console.log(wbs);
-        console.log(isConnectedRef.current);
-        console.log(tradeParams.contractType);
-        
-        
+    if (wbs.current == null) {
+      await connectWebSocket();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    } else if (wbs.current && wbs.current.readyState !== WebSocket.OPEN) {
+      await connectWebSocket();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    } else if (
+      wbs.current &&
+      wbs.current.readyState === WebSocket.OPEN &&
+      !isConnectedRef.current
+    ) {
+      await connectWebSocket();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+
     sendMessage({
       buy: 1,
       price: tradeParams.stake,
@@ -184,101 +185,133 @@ const updateConnectionState = (value: boolean) => {
   };
 
   return (
-    <div className={`bg-slate-300 transition-all duration-300 ${isSidebarExpanded ? "ml-60" : "ml-14"}`}>
-      <Container maxWidth="sm">
-        <Box mt={4} mb={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h4" align="center" gutterBottom>
-                Place your trade
-              </Typography>
-              <Typography variant="h5" align="center" sx={{ mt: 2 }}>
-                Current Balance: ${selectedAccount.balance}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
-
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Make a Trade
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="body1">Contract Type</Typography>
-                <Select
-                  fullWidth
-                  value={tradeParams.contractType}
-                  onChange={(e) => setTradeParams((prev) => ({
-                    ...prev,
-                    contractType: e.target.value as "CALL" | "PUT",
-                  }))}                >
-                  <MenuItem value="CALL">CALL</MenuItem>
-                  <MenuItem value="PUT">PUT</MenuItem>
-                </Select>
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Stake"
-                  type="number"
-                  value={tradeParams.stake}
-                  onChange={(e) => setTradeParams({ ...tradeParams, stake: Number(e.target.value) })}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Duration"
-                  type="number"
-                  value={tradeParams.duration}
-                  onChange={(e) => setTradeParams({ ...tradeParams, duration: Number(e.target.value) })}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body1">Duration Unit</Typography>
-                <Select
-                  fullWidth
-                  value={tradeParams.durationUnit}
-                  onChange={(e) => setTradeParams({ ...tradeParams, durationUnit: e.target.value as "m" | "h" })}
-                >
-                  <MenuItem value="m">Minutes</MenuItem>
-                  <MenuItem value="h">Hours</MenuItem>
-                </Select>
-              </Grid>
-              <Grid item xs={6} mt={3}>
-                <TextField
-                  fullWidth
-                  label="Symbol"
-                  value={tradeParams.symbol}
-                  onChange={(e) => setTradeParams({ ...tradeParams, symbol: e.target.value })}
-                />
-              </Grid>
-            </Grid>
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ mt: 2 }}
-              onClick={handleTrade}
+    <div className={` ${isSidebarExpanded ? "ml-60" : "ml-14"}`}>
+    {/* Trade Alert - Appears at the top of the page */}
+    {tradeAlert && (
+      <div
+        className="fixed top-4 left-1/2 transform -translate-x-1/2 mt-4 p-4 bg-green-100 text-green-800 rounded border border-green-300 z-50"
+        role="alert"
+      >
+        {tradeAlert}
+        <button
+          className="ml-2 text-green-600 hover:underline"
+          onClick={() => setTradeAlert(null)}
+        >
+          Close
+        </button>
+      </div>
+    )}
+  
+    <div className="flex justify-center items-center flex-col mt-8">
+      <h1 className="text-center text-3xl font-bold mb-6 text-black">Live Market Data Chart</h1>
+      <div className="flex justify-center items-center w-full">
+        <LiveChart symbol="R_100" tradePlaced={tradePlaced} />
+      </div>
+    </div>
+  
+    <div className="container mx-auto px-4 mt-8 bg-slate-200">
+      <div className="bg-slate-200 shadow-md rounded-lg p-6 text-black">
+        <div className="bg-slate-200 shadow-md rounded-lg p-6 mb-4">
+          <h2 className="text-2xl font-semibold text-center mb-2">Place your trade</h2>
+          <p className="text-lg text-center">Current Balance: ${selectedAccount.balance}</p>
+        </div>
+  
+        {/* Form Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+          {/* Contract Type */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Contract Type</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={tradeParams.contractType}
+              onChange={(e) =>
+                setTradeParams((prev) => ({
+                  ...prev,
+                  contractType: e.target.value as "CALL" | "PUT",
+                }))
+              }
             >
-              Place Trade
-            </Button>
-          </CardContent>
-        </Card>
-
-        {tradeAlert && (
-          <Alert severity="success" sx={{ mt: 2 }} onClose={() => setTradeAlert(null)}>
-            {tradeAlert}
-          </Alert>
-        )}
-      </Container>  
-      <div>
-      <h1>Live Market Data Chart</h1>
-      <LiveChart symbol="R_100" tradePlaced={tradePlaced} />
+              <option value="CALL">CALL</option>
+              <option value="PUT">PUT</option>
+            </select>
+          </div>
+  
+          {/* Symbol */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Symbol</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={tradeParams.symbol}
+              onChange={(e) =>
+                setTradeParams({ ...tradeParams, symbol: e.target.value })
+              }
+            />
+          </div>
+  
+          {/* Stake */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Stake</label>
+            <input
+              type="number"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={tradeParams.stake}
+              onChange={(e) =>
+                setTradeParams({
+                  ...tradeParams,
+                  stake: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+  
+          {/* Duration */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Duration</label>
+            <input
+              type="number"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={tradeParams.duration}
+              onChange={(e) =>
+                setTradeParams({
+                  ...tradeParams,
+                  duration: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+  
+          {/* Duration Unit */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Duration Unit</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={tradeParams.durationUnit}
+              onChange={(e) =>
+                setTradeParams({
+                  ...tradeParams,
+                  durationUnit: e.target.value as "m" | "h",
+                })
+              }
+            >
+              <option value="m">Minutes</option>
+              <option value="h">Hours</option>
+            </select>
+          </div>
+  
+          {/* Place Trade Button */}
+          <button
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded mt-6 hover:bg-blue-700 transition"
+            onClick={handleTrade}
+          >
+            Place Trade
+          </button>
+        </div>
+      </div>
     </div>
-    </div>
+  </div>
+  
+  
   );
 };
 

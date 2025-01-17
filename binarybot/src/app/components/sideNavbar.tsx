@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
@@ -20,7 +19,6 @@ import binarybot from "../binarybot.png";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { clearSelectedAccount, setSelectedAccount } from "../redux/slices/selectedAccountSlice";
-import { useWebSocket } from "../contexts/WebSocketContext";
 import { clearAccounts } from "../redux/slices/accountsSlice";
 import { clearAuthStates } from "../redux/slices/authSlice";
 import { clearUser } from "../redux/slices/userSlice";
@@ -38,7 +36,7 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
   const toggleSidebar = () => setIsExpanded(!isExpanded);
   const auth = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
-  const { sendMessage,isConnected, reconnect,disconnect } = useWebSocket();
+  // const { sendMessage,isConnected, reconnect,disconnect } = useWebSocket();
   const router = useRouter();
 
   const supportItems = [
@@ -58,17 +56,12 @@ const SideNavbar: React.FC<SideNavbarProps> = ({
     dispatch(clearAuthStates());
     dispatch(clearSelectedAccount());
     dispatch(clearUser());
-    disconnect();
     router.push("/login");
   }
 
   const selectAccount = async (loginid: string) => {
     const selectedState = auth.authStates.find((state) => state.loginid === loginid);
     if (selectedState) {
-      if(!isConnected) {
-       await reconnect();
-      }
-      sendMessage({ authorize: selectedState.token });
       console.log("on click", selectedState);
       
       dispatch(

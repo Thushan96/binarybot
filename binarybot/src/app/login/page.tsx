@@ -25,11 +25,9 @@ export default function Login() {
   const wbs = useRef<WebSocket | null>(null);
   const { ws,disconnect } = useWebSocket(); // Access global WebSocket and disconnect method
   const APP_ID = process.env.NEXT_PUBLIC_APP_ID || "";
-  const isComponentMounted = useRef(false); // Flag to track component mount status
 
   // Function to establish WebSocket connection for the Login page
   const connectWebSocket = () => {
-    console.log("Connecting WebSocket...");
     
     // if (wbs.current) {
     //   wbs.current.close();
@@ -38,7 +36,6 @@ export default function Login() {
     wbs.current = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${APP_ID}`);
 
     wbs.current.onopen = () => {
-      console.log("WebSocket connected");
     };
 
     wbs.current.onmessage = (message) => {
@@ -56,6 +53,8 @@ export default function Login() {
 
     wbs.current.onerror = (error) => {
       setIsLoading(false);
+      console.log(error);
+      
     };
 
     wbs.current.onclose = () => {

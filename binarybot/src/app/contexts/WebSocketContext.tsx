@@ -9,7 +9,6 @@ interface WebSocketContextProps {
   ws: WebSocket | null;
   isConnected: boolean;
   sendMessage: (message: object) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastMessage: any;
   reconnect: () => Promise<void>;
   disableWebSocket?: boolean;
@@ -49,7 +48,6 @@ export const connectWebSocketWithPromise = (url: string): Promise<WebSocket> => 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, appId ,disableWebSocket = false }) => {
   const wsRef = useRef<WebSocket | null>(null); // Ref to track WebSocket instance
   const [isConnected, setIsConnected] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lastMessage, setLastMessage] = useState<any>(null);
   const messageQueue = useRef<object[]>([]); // Queue to hold messages until WebSocket is connected
   const selectedAccount = useSelector((state: RootState) => state.selectedAccount);
@@ -66,12 +64,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   // Connect WebSocket
   const connectWebSocket = useCallback(async () => {
     if (disableWebSocket) {
-      console.log("Global WebSocket is disabled on this page.");
       return;
     }
 
     if (wsRef.current && isConnected) {
-      console.warn("WebSocket already connected.");
       return;
     }
 
@@ -85,7 +81,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
         wsRef.current.send(JSON.stringify({ authorize : selectedAccount.token}));
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }else{
-        console.log("No token found in selected Account reconnection failed");
       }
 
       // Attach a single onmessage handler
@@ -135,7 +130,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   // Reconnect WebSocket
   const reconnect = useCallback(async () => {
     if (!isConnected) {
-      console.log("Reconnecting WebSocket...");
       await connectWebSocket();
     }
   }, [isConnected, connectWebSocket]);
