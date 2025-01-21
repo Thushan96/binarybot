@@ -26,64 +26,9 @@ const Main = () => {
   const sentTokens = useRef<Set<string>>(new Set()); // Track sent tokens to prevent duplicates
   const router = useRouter();
 
-  // useEffect(() => {
-  //   const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=67094`);
-
-  //   ws.onopen = () => {
-  //     setStatus("WebSocket connected.");
-
-  //     if(authStates==null || authStates.length === 0) {
-  //       console.log("authStates",authStates);
-        
-  //       // Send requests for tokens only if they haven't been sent before
-  //     if (token1 && !sentTokens.current.has(token1)) {
-  //       sendAuthRequest(ws, token1);
-  //       sentTokens.current.add(token1); // Mark token1 as sent
-  //     }
-  //     if (token2 && !sentTokens.current.has(token2)) {
-  //       sendAuthRequest(ws, token2);
-  //       sentTokens.current.add(token2); // Mark token2 as sent
-  //     }
-  //     }
-      
-  //   };
-
-  //   ws.onmessage = (event) => {
-  //     const data = JSON.parse(event.data);
-
-  //     if (data.error) {
-  //       setStatus("Authorization failed.");
-  //     } else if (data.authorize) {
-  //       const token = tokenMap.current[data.req_id]; // Match the request ID to the token
-  //       if (token) {
-  //         setStatus("Authorization successful.");
-
-  //         // Save token and loginid pairing
-  //         dispatch(
-  //           addAuthState({
-  //             token: token, // The token from the original request
-  //             loginid: data.authorize.loginid, // The login ID from the response
-  //             balance: data.authorize.balance,
-  //             currency: data.authorize.currency,
-  //             is_virtual: data.authorize.is_virtual,
-  //             userEmail: data.authorize.email,
-  //           })
-  //         );
-  //       }
-  //     }
-  //   };
-
-  //   ws.onclose = () => {
-  //     setStatus("WebSocket disconnected.");
-  //   };
-
-  //   return () => {
-  //     ws.close(); // Cleanup WebSocket on component unmount
-  //   };
-  // }, [token1, token2]);
-
   useEffect(() => {
-    // Dynamically get all tokens from search params
+    try {
+       // Dynamically get all tokens from search params
     const allParams = Object.fromEntries(searchParams.entries());
     const tokens = Object.entries(allParams)
       .filter(([key]) => key.startsWith("token")) // Filter keys that start with "token"
@@ -135,7 +80,9 @@ const Main = () => {
 
     ws.onclose = () => {
     };
-
+    } catch (error) {
+      console.log(error);
+    }
   }, [searchParams]);
 
   const sendAuthRequest = (ws: WebSocket, token: string) => {
@@ -148,29 +95,25 @@ const Main = () => {
 
 
   useEffect(() => {
-    if (!selectedAccount.loginid && authStates.length > 0) {
-      const defaultAccount = authStates[0];
-      dispatch(
-        setSelectedAccount({
-          loginid: defaultAccount.loginid,
-          currency: defaultAccount.currency,
-          balance: defaultAccount.balance,
-          token: defaultAccount.token,
-          is_virtual: defaultAccount.is_virtual,
-          userEmail: defaultAccount.userEmail,
-        })
-      );
-    }    
+    try {
+      if (!selectedAccount.loginid && authStates.length > 0) {
+        const defaultAccount = authStates[0];
+        dispatch(
+          setSelectedAccount({
+            loginid: defaultAccount.loginid,
+            currency: defaultAccount.currency,
+            balance: defaultAccount.balance,
+            token: defaultAccount.token,
+            is_virtual: defaultAccount.is_virtual,
+            userEmail: defaultAccount.userEmail,
+          })
+        );
+      }   
+    } catch (error) {
+      console.log(error);
+    }
+     
   }, [authStates, selectedAccount]);
-
-  // useEffect(() => {
-  //   if(authStates==null || authStates.length==0) {
-  //     if(token1==null || token2==null){
-  //       router.push("/login");
-
-  //     }
-  //   }
-  // },[]);
 
 
   return (
