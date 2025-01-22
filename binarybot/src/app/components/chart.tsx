@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Line } from "react-chartjs-2";
-import { Chart as ChartJS, registerables } from "chart.js";
+import React, { useEffect, useState } from "react";
+import CanvasJSReact from "@canvasjs/react-stockcharts";
 import { subscribeToMarketData, unsubscribeFromMarketData } from "../../utils/websocket";
 
-// Register Chart.js components
-ChartJS.register(...registerables);
+const { CanvasJSStockChart } = CanvasJSReact;
 
 interface LiveChartProps {
   symbol: string;
@@ -12,78 +10,35 @@ interface LiveChartProps {
 }
 
 const LiveChart: React.FC<LiveChartProps> = ({ symbol, tradePlaced }) => {
-  const chartRef = useRef<any>(null);
-  const [chartData, setChartData] = useState<any>({
-    labels: [],
-    datasets: [
-      {
-        label: `${symbol} Price`,
-        data: [],
-        borderColor: "black",
-        borderWidth: 1,
-        pointBackgroundColor: [],
-        pointRadius: [],
-        fill: false,
-      },
-    ],
-  });
-
-  const [latestTick, setLatestTick] = useState<any>(null);
+  const [dataPoints, setDataPoints] = useState<any[]>([]);
+  const [tradeMarkers, setTradeMarkers] = useState<any[]>([]);
 
   // Update the chart with new data
   const updateChart = (tick: any) => {
-    setLatestTick(tick);
-    setChartData((prevData: any) => {
-      const newLabels = [...prevData.labels, new Date().toLocaleTimeString()];
-      const newData = [...prevData.datasets[0].data, tick.quote];
-      const newPointColors = [...prevData.datasets[0].pointBackgroundColor, "rgba(75, 192, 192, 1)"];
-      const newPointSizes = [...prevData.datasets[0].pointRadius, 3];
-
-      if (newLabels.length > 20) {
-        newLabels.shift();
-        newData.shift();
-        newPointColors.shift();
-        newPointSizes.shift();
-      }
-
-      return {
-        labels: newLabels,
-        datasets: [
-          {
-            ...prevData.datasets[0],
-            data: newData,
-            pointBackgroundColor: newPointColors,
-            pointRadius: newPointSizes,
-          },
-        ],
-      };
-    });
+    setDataPoints((prevPoints) => [
+      ...prevPoints,
+      { x: new Date(), y: tick.quote }, // Adding new data point
+    ]);
   };
 
-  // Add trade marker on the chart
+  // Add trade marker
   const addTradeMarker = () => {
-    if (latestTick) {
-      setChartData((prevData: any) => {
-        const updatedColors = [...prevData.datasets[0].pointBackgroundColor];
-        const updatedSizes = [...prevData.datasets[0].pointRadius];
-        updatedColors[updatedColors.length - 1] = "blue";
-        updatedSizes[updatedSizes.length - 1] = 6;
-
-        return {
-          ...prevData,
-          datasets: [
-            {
-              ...prevData.datasets[0],
-              pointBackgroundColor: updatedColors,
-              pointRadius: updatedSizes,
-            },
-          ],
-        };
-      });
+    if (dataPoints.length > 0) {
+      const lastDataPoint = dataPoints[dataPoints.length - 1];
+      setTradeMarkers((prevMarkers) => [
+        ...prevMarkers,
+        {
+          x: lastDataPoint.x,
+          y: lastDataPoint.y,
+          markerType: "circle",
+          markerSize: 10,
+          markerColor: "blue",
+        },
+      ]);
     }
   };
 
-  // Subscribe to market data when the symbol changes
+  
   useEffect(() => {
     subscribeToMarketData(symbol, updateChart);
     return () => {
@@ -98,9 +53,48 @@ const LiveChart: React.FC<LiveChartProps> = ({ symbol, tradePlaced }) => {
     }
   }, [tradePlaced]);
 
+  // Configuration for CanvasJS StockChart
+  const options = {
+    theme: "light2",
+    title: {
+      text: `${symbol}`,
+    },
+    subtitles: [
+      {
+        text: "Market Data",
+      },
+    ],
+    charts: [
+      {
+        data: [
+          {
+            type: "line",
+            dataPoints: dataPoints, // Main data series for the line chart
+          },
+          {
+            type: "scatter",
+            dataPoints: tradeMarkers,
+            markerType: "circle",
+            markerSize: 10,
+            markerColor: "blue",
+            showInLegend: false,
+          },
+        ],
+      },
+    ],
+    navigator: {
+      slider: {
+        minimum: new Date(new Date().getTime() - 60000),
+      },
+    },
+    rangeSelector: {
+      enabled: false,
+    },
+  };
+
   return (
     <div style={{ position: "relative", width: "100%", height: "50vh" }}>
-      <Line ref={chartRef} data={chartData} options={{ responsive: true ,maintainAspectRatio: true }} />
+      <CanvasJSStockChart options={options} containerProps={{ width: "100%", height: "100%" }} />
     </div>
   );
 };

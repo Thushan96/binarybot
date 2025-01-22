@@ -190,11 +190,18 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
       return;
     }
 
+    if(Number(tradeParams.stake) <=0){
+      setTradeAlert("Your stake must be more than 0");
+      setTimeout(() => setTradeAlert(null), 2000); 
+      return;
+    }
+
     if (
       Number(selectedAccount.balance) <= 0 ||
       Number(selectedAccount.balance) < tradeParams.stake
     ) {
       setTradeAlert("Your account balance is insufficient. Please recharge your account");
+      setTimeout(() => setTradeAlert(null), 2000); 
       return;
     }
 
@@ -255,7 +262,7 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
       )}
 
       <div className="flex justify-center items-center flex-col mt-8">
-        <h1 className="text-center text-3xl font-bold mb-6 text-black">Live Market Data Chart</h1>
+        <h1 className="text-center text-3xl font-bold mb-6 text-black">Live Market</h1>
         <div className="flex justify-center items-center w-full">
           <LiveChart symbol="R_100" tradePlaced={tradePlaced} />
         </div>
