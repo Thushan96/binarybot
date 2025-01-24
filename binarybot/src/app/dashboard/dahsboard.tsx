@@ -32,11 +32,19 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
   const { authStates } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   const APP_ID = process.env.NEXT_PUBLIC_APP_ID || "";
-  const isConnectedRef = useRef(false); // Holds the connection state immediately
+  const isConnectedRef = useRef(false);
   const [tradePlaced, setTradePlaced] = useState(false);
   const [disabled, setDisabled] = useState(true);
 
   const tradeTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  const staticSymbols = [
+    { symbol: "R_100", display_name: "Random 100 Index" },
+    { symbol: "R_75", display_name: "Random 75 Index" },
+    { symbol: "R_50", display_name: "Random 50 Index" },
+    { symbol: "R_25", display_name: "Random 25 Index" },
+    { symbol: "R_10", display_name: "Random 10 Index" },
+  ];
 
   const updateConnectionState = (value: boolean) => {
     isConnectedRef.current = value;
@@ -264,7 +272,7 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
       <div className="flex justify-center items-center flex-col mt-8">
         <h1 className="text-center text-3xl font-bold mb-6 text-black">Live Market</h1>
         <div className="flex justify-center items-center w-full">
-          <LiveChart symbol="R_100" tradePlaced={tradePlaced} />
+          <LiveChart symbol={tradeParams.symbol} tradePlaced={tradePlaced} />
         </div>
       </div>
 
@@ -298,14 +306,25 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
             {/* Symbol */}
             <div>
               <label className="block text-sm font-medium mb-2">Symbol</label>
-              <input
-                type="text"
+              <select
                 className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={tradeParams.symbol}
                 onChange={(e) =>
                   setTradeParams({ ...tradeParams, symbol: e.target.value })
                 }
-              />
+              >
+                {staticSymbols.length > 0 ? (
+                  staticSymbols.map((symbol) => (
+                    <option key={symbol.symbol} value={symbol.symbol}>
+                      {symbol.symbol}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    Loading symbols...
+                  </option>
+                )}
+              </select>
             </div>
 
             {/* Stake */}

@@ -12,6 +12,7 @@ interface LiveChartProps {
 const LiveChart: React.FC<LiveChartProps> = ({ symbol, tradePlaced }) => {
   const [dataPoints, setDataPoints] = useState<any[]>([]);
   const [tradeMarkers, setTradeMarkers] = useState<any[]>([]);
+  const [chartKey, setChartKey] = useState<number>(0);
 
   // Update the chart with new data
   const updateChart = (tick: any) => {
@@ -40,6 +41,9 @@ const LiveChart: React.FC<LiveChartProps> = ({ symbol, tradePlaced }) => {
 
   
   useEffect(() => {
+    setDataPoints([]);
+    setTradeMarkers([]);
+    setChartKey((prevKey) => prevKey + 1);
     subscribeToMarketData(symbol, updateChart);
     return () => {
       unsubscribeFromMarketData(symbol);
@@ -94,7 +98,7 @@ const LiveChart: React.FC<LiveChartProps> = ({ symbol, tradePlaced }) => {
 
   return (
     <div style={{ position: "relative", width: "100%", height: "50vh" }}>
-      <CanvasJSStockChart options={options} containerProps={{ width: "100%", height: "100%" }} />
+      <CanvasJSStockChart key={chartKey}  options={options} containerProps={{ width: "100%", height: "100%" }} />
     </div>
   );
 };

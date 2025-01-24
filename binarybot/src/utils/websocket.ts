@@ -86,6 +86,7 @@ setupWebSocketHandlers();
 
 // Subscribe to market data
 export const subscribeToMarketData = (symbol: string, callback: (data: any) => void) => {
+  
   try {
     if (!activeSubscriptions.has(symbol)) {
       activeSubscriptions.set(symbol, callback); // Track the subscription

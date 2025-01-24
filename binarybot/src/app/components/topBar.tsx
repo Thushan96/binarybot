@@ -8,6 +8,7 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ isExpanded }) => {
   const selectedAccount = useSelector((state: RootState) => state.selectedAccount);
+  const user = useSelector((state: RootState) => state.user);
 
   return (
     <div
@@ -71,7 +72,7 @@ const TopBar: React.FC<TopBarProps> = ({ isExpanded }) => {
         <span
           className="text-xs md:text-sm truncate max-w-xs cursor-pointer hover:text-cyan-400"
           onClick={() =>
-            console.log(`Email clicked: ${selectedAccount?.userEmail || ""}`)
+            console.log(`Email clicked: ${user?.fullname || selectedAccount?.userEmail || ""}`)
           }
         >
           {selectedAccount?.userEmail || ""}
