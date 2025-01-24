@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { setSelectedAccount } from "../redux/slices/selectedAccountSlice";
@@ -34,7 +34,6 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
   const APP_ID = process.env.NEXT_PUBLIC_APP_ID || "";
   const isConnectedRef = useRef(false);
   const [tradePlaced, setTradePlaced] = useState(false);
-  const [disabled, setDisabled] = useState(true);
 
   const tradeTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
@@ -64,7 +63,6 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
       if (selectedAccount.token) {
         console.log("Sending authentication request...");
         wbs.current?.send(JSON.stringify({ authorize: selectedAccount.token }));
-        setDisabled(false);
       } else {
         console.log("No token found in selected account. Reconnection failed.");
       }
@@ -160,7 +158,6 @@ const Dashboard: React.FC<DashboardProps> = ({ isSidebarExpanded }) => {
     wbs.current.onclose = () => {
       updateConnectionState(true);
       wbs.current = null;
-      setDisabled(true);
     };
   };
 
